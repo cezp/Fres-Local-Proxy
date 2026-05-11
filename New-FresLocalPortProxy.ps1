@@ -17,17 +17,12 @@ param(
     [switch]$ReplaceExistingRule
 )
 
-$languageMode = $ExecutionContext.SessionState.LanguageMode
 $listenAddress = $BindIp.IPAddressToString
 $connectAddress = $TargetIp.IPAddressToString
 
-if ($languageMode -eq [System.Management.Automation.PSLanguageMode]::ConstrainedLanguage) {
-    Write-Warning "PowerShell is running in ConstrainedLanguage mode, so TcpListener cannot be created. Using netsh portproxy instead."
-}
-
-$existingRules = (& netsh interface portproxy show v4tov4) 2>$null
+$existingRules = & netsh interface portproxy show v4tov4 2>&1
 if ($LASTEXITCODE -ne 0) {
-    throw "Unable to query existing portproxy rules. Run PowerShell as Administrator."
+    throw "Unable to query existing portproxy rules. Run PowerShell as Administrator. netsh output: $($existingRules -join ' ')"
 }
 
 $rulePattern = "(?m)^\s*$([regex]::Escape($listenAddress))\s+$BindPort\s+"
@@ -36,15 +31,15 @@ if ($existingRules -match $rulePattern) {
         throw "A portproxy rule already exists for $listenAddress`:$BindPort. Re-run with -ReplaceExistingRule to overwrite it."
     }
 
-    & netsh interface portproxy delete v4tov4 listenaddress=$listenAddress listenport=$BindPort | Out-Null
+    $deleteResult = & netsh interface portproxy delete v4tov4 listenaddress=$listenAddress listenport=$BindPort 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to remove the existing portproxy rule for $listenAddress`:$BindPort."
+        throw "Failed to remove the existing portproxy rule for $listenAddress`:$BindPort. netsh output: $($deleteResult -join ' ')"
     }
 }
 
-& netsh interface portproxy add v4tov4 listenaddress=$listenAddress listenport=$BindPort connectaddress=$connectAddress connectport=$TargetPort | Out-Null
+$addResult = & netsh interface portproxy add v4tov4 listenaddress=$listenAddress listenport=$BindPort connectaddress=$connectAddress connectport=$TargetPort 2>&1
 if ($LASTEXITCODE -ne 0) {
-    throw "Failed to create the portproxy rule. Run PowerShell as Administrator and verify the address and port values."
+    throw "Failed to create the portproxy rule. Run PowerShell as Administrator and verify the address and port values. netsh output: $($addResult -join ' ')"
 }
 
 Write-Host "Port proxy configured: $listenAddress`:$BindPort -> $connectAddress`:$TargetPort"
