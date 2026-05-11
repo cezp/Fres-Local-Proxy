@@ -74,12 +74,12 @@ if ($LASTEXITCODE -ne 0) {
 $rulePattern = "(?m)^\s*$([regex]::Escape($listenAddress))\s+$BindPort\s+"
 if ($existingRules -match $rulePattern) {
     if (-not $ReplaceExistingRule) {
-        throw "A portproxy rule already exists for $listenAddress`:$BindPort. Re-run with -ReplaceExistingRule to overwrite it."
+        throw "A portproxy rule already exists for $($listenAddress):$BindPort. Re-run with -ReplaceExistingRule to overwrite it."
     }
 
     $deleteResult = & netsh interface portproxy delete v4tov4 listenaddress=$listenAddress listenport=$BindPort 2>&1
     if ($LASTEXITCODE -ne 0) {
-        throw "Failed to remove the existing portproxy rule for $listenAddress`:$BindPort. netsh output: $($deleteResult -join ' ')"
+        throw "Failed to remove the existing portproxy rule for $($listenAddress):$BindPort. netsh output: $($deleteResult -join ' ')"
     }
 }
 
@@ -88,4 +88,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "Failed to create the portproxy rule. Run PowerShell as Administrator and verify the address and port values. netsh output: $($addResult -join ' ')"
 }
 
-Write-Host "Port proxy configured: $listenAddress`:$BindPort -> $connectAddress`:$TargetPort"
+Write-Host "Port proxy configured: $($listenAddress):$BindPort -> $($connectAddress):$TargetPort"
